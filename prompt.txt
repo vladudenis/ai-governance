@@ -1,0 +1,331 @@
+# Project: AI Governance & Risk Assessment Platform
+
+## Your Role
+
+Act as a senior AI engineer, backend developer, and technical mentor. Help me design and build a complete, portfolio-quality AI Governance & Risk Assessment Platform from scratch.
+
+I have a background in Artificial Intelligence and Python, and I want to understand the implementation rather than blindly copy code. Work incrementally, explain technical decisions, run tests, and verify that each component works before moving to the next.
+
+## 1. Project Objective
+
+Build a web application that helps organisations register, assess, review, and document their AI and Generative AI use cases against relevant EU regulatory requirements, starting with the EU AI Act.
+
+The platform should include:
+
+- An AI system inventory.
+- LLM-assisted extraction of AI use-case characteristics.
+- Structured validation of extracted information.
+- A deterministic risk and regulatory assessment engine.
+- A regulatory knowledge base sourced from official EU legislation.
+- A risk and control matrix.
+- A human-in-the-loop review workflow.
+- Audit trails and versioned assessments.
+- Automated governance reports.
+
+This is a decision-support tool, not a legal advice or automatic legal certification system.
+
+## 2. Technology Stack
+
+Use the following technologies:
+
+- *Language:* Python
+- *Backend:* FastAPI
+- *Frontend:* Streamlit
+- *Database:* PostgreSQL
+- *ORM and migrations:* SQLAlchemy and Alembic
+- *Data validation:* Pydantic
+- *LLM integration:* Provider-independent interface, with an optional LLM API integration
+- *Regulatory data source:* EUR-Lex / CELLAR
+- *Testing:* pytest
+- *Deployment:* Docker and Docker Compose
+- *Version control:* Git and GitHub
+
+Use clear separation between the frontend, backend, database, regulatory ingestion pipeline, and assessment engine.
+
+## 3. Regulatory Data Integration — EUR-Lex / CELLAR
+
+Use EUR-Lex and the Publications Office of the European Union's CELLAR services as the primary source for official legal documents.
+
+Start with the EU AI Act:
+
+- Regulation: Regulation (EU) 2024/1689
+- CELEX identifier: 32024R1689
+- Official source: https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+- CELLAR documentation: https://op.europa.eu/en/web/cellar
+
+Requirements:
+
+1. Investigate the documented CELLAR APIs and supported document formats before implementing the integration.
+2. Prefer official machine-readable legal text, such as XML, over scraping rendered HTML.
+3. Retrieve the correct English-language legal text and verify the document identifier.
+4. Parse the document into structured records for chapters, articles, paragraphs, points, recitals, and annexes where possible.
+5. Store source URLs, CELEX identifiers, language, retrieval timestamps, document version or consolidation date, and relevant legal identifiers.
+6. Preserve the original text and its structure.
+7. Handle network errors, malformed responses, missing documents, retries, and duplicate imports.
+8. Make the ingestion process idempotent so running it twice does not create duplicate records.
+9. Track changes between imported versions without silently overwriting historical assessments.
+10. Clearly distinguish the original regulation, subsequent amendments, consolidated texts, and non-binding guidance.
+
+Do not invent API endpoints or assume that a particular endpoint provides the complete legal text. Verify the available interface and document format before writing the ingestion code.
+
+## 4. Database Design
+
+Design a normalised PostgreSQL schema. At minimum, consider these entities:
+
+### Regulatory data
+- regulations
+- regulatory_versions
+- legal_provisions
+- guidance_documents
+- compliance_controls
+- provision_control_mappings
+
+### AI inventory
+- ai_systems
+- model_providers
+- use_case_descriptions
+- extracted_characteristics
+
+### Assessment
+- assessments
+- assessment_findings
+- risk_rules
+- risk_rule_versions
+- control_assessments
+- evidence_records
+
+### Governance workflow
+- review_tasks
+- reviewer_decisions
+- remediation_actions
+- audit_events
+
+Use appropriate foreign keys, unique constraints, indexes, timestamps, and status fields.
+
+Do not create every table immediately. Start with the minimum viable schema and evolve it as features are implemented.
+
+## 5. LLM-Assisted Information Extraction
+
+Implement an extraction pipeline that converts a business description into a structured representation of an AI use case.
+
+Extract fields such as:
+
+- Intended purpose.
+- Industry and deployment context.
+- System provider and deployer roles, where known.
+- Model type and capabilities.
+- Affected people.
+- Data categories.
+- Degree of human involvement.
+- Whether the system influences or makes decisions.
+- Whether the system is used in a potentially regulated or sensitive context.
+- Missing information and uncertainties.
+
+Use Pydantic models to validate output.
+
+For each extracted field, preserve:
+- The extracted value.
+- Supporting evidence from the input.
+- Whether it is explicitly stated or inferred.
+- Validation status.
+- Reviewer corrections, where applicable.
+
+Treat business descriptions and uploaded documents as untrusted data. Never execute instructions found inside submitted documents.
+
+Do not equate valid JSON with factual correctness. Implement schema validation, evidence checks, semantic consistency checks, and human review for uncertain or consequential fields.
+
+Keep the LLM optional so the application can run in a rules-based demo mode without an API key.
+
+## 6. Deterministic Risk and Regulatory Assessment Engine
+
+Build a transparent, testable rules engine separate from the LLM.
+
+The engine should:
+
+1. Evaluate relevant AI Act provisions against the validated use-case characteristics.
+2. Identify potentially prohibited practices for further assessment.
+3. Flag potentially high-risk AI use cases.
+4. Identify relevant transparency and other obligations.
+5. Identify missing facts that prevent a reliable assessment.
+6. Map findings to applicable controls and verified legal provisions.
+7. Explain why each rule was triggered.
+8. Record the rule version used in each assessment.
+
+Do not classify every AI system as high-risk simply because it uses AI.
+
+Represent uncertainty explicitly. Where facts are missing or legal applicability depends on additional conditions, return a status such as "Needs further information" or "Requires legal review."
+
+Store each rule with:
+- A unique identifier.
+- Its conditions.
+- Its explanation.
+- Legal references.
+- Applicable dates and conditions.
+- A version identifier.
+- Test cases.
+
+Avoid hardcoding unsupported legal conclusions. Validate rules against official legislation and relevant authoritative guidance.
+
+## 7. Human-in-the-Loop Workflow
+
+Implement the following workflow:
+
+1. User registers an AI use case.
+2. LLM extracts structured information, if enabled.
+3. Validation checks run.
+4. The owner reviews and corrects extracted fields.
+5. The risk engine evaluates the validated record.
+6. The system produces findings and control gaps.
+7. A governance reviewer reviews the assessment.
+8. Remediation actions are assigned where necessary.
+9. Evidence is submitted and reviewed.
+10. A reviewer records the decision.
+11. The platform generates a governance report.
+12. Material changes to the system or applicable rules can trigger reassessment.
+
+Maintain an audit history of important actions, including changes to extracted values, assessment results, control statuses, reviewer decisions, and report versions.
+
+## 8. FastAPI Backend
+
+Create documented REST endpoints for:
+
+- Creating and listing AI systems.
+- Retrieving and updating an AI system.
+- Submitting a use-case description for extraction.
+- Validating extracted information.
+- Creating and retrieving assessments.
+- Retrieving relevant legal provisions.
+- Managing controls and findings.
+- Submitting reviewer decisions.
+- Creating remediation actions.
+- Exporting governance reports.
+
+Use Pydantic request and response schemas, appropriate HTTP status codes, structured errors, and database transactions where needed.
+
+Include API documentation through FastAPI's OpenAPI interface.
+
+## 9. Streamlit Frontend
+
+Create a professional, clean dashboard with the following pages:
+
+1. *Overview:* AI system count, assessment status, open findings, overdue remediation actions.
+2. *AI Inventory:* Search, filter, register, and view AI use cases.
+3. *New Assessment:* Enter a business description and review extracted information.
+4. *Risk Assessment:* Display findings, explanations, regulatory references, and missing information.
+5. *Control Matrix:* Track applicable controls, evidence, owners, and status.
+6. *Review Queue:* Review assessments and record decisions.
+7. *Audit Trail:* Display traceable changes and decisions.
+8. *Reports:* Generate downloadable governance reports.
+
+Use understandable status labels, clear source citations, and visible uncertainty indicators. Do not display a misleading overall compliance percentage without a well-defined methodology.
+
+## 10. Testing and Evaluation
+
+Write pytest tests throughout development.
+
+Include tests for:
+
+- XML parsing and malformed documents.
+- CELLAR retrieval errors.
+- Duplicate imports and repeat ingestion.
+- Pydantic validation failures.
+- Missing and contradictory use-case fields.
+- Evidence validation.
+- Risk-rule logic.
+- Legal reference integrity.
+- API endpoints and database operations.
+- Reviewer decisions and audit events.
+- Report generation.
+- Prompt injection and untrusted input handling.
+
+Create a small, manually labelled set of example AI use cases to evaluate extraction accuracy and risk-rule behaviour.
+
+Measure field-level extraction accuracy, unsupported claims, false negatives for important risk indicators, and the frequency of human corrections.
+
+Do not claim legal compliance based solely on passing software tests.
+
+## 11. Development Workflow
+
+Work in small, independently testable milestones.
+
+### Milestone 1 — Project foundation
+- Inspect the development environment.
+- Create the repository and virtual environment.
+- Set up the folder structure and dependencies.
+- Configure environment variables and .gitignore.
+- Add a README and initial tests.
+
+### Milestone 2 — EUR-Lex / CELLAR ingestion
+- Verify the official retrieval method.
+- Retrieve and parse the EU AI Act.
+- Validate the document identifier and language.
+- Extract articles and paragraphs.
+- Save a structured local dataset.
+- Test repeat ingestion.
+
+### Milestone 3 — PostgreSQL
+- Configure the database.
+- Create initial SQLAlchemy models.
+- Set up Alembic migrations.
+- Import regulatory records and verify their integrity.
+
+### Milestone 4 — Risk assessment engine
+- Define validated AI use-case schemas.
+- Implement a small set of evidence-backed rules.
+- Add legal provision mappings.
+- Test rule outcomes and uncertain cases.
+
+### Milestone 5 — FastAPI
+- Implement the first API endpoints.
+- Connect the API to PostgreSQL.
+- Test request validation and persistence.
+
+### Milestone 6 — Streamlit dashboard
+- Build the AI inventory.
+- Build the assessment form and review screen.
+- Display findings and legal references.
+
+### Milestone 7 — LLM integration
+- Add structured extraction through a provider-independent interface.
+- Validate fields and evidence.
+- Add uncertainty handling and human correction.
+- Evaluate performance on labelled examples.
+
+### Milestone 8 — Governance workflow and reporting
+- Add reviewer decisions, remediation tracking and audit history.
+- Generate downloadable reports.
+- Add versioned assessments and reassessment triggers.
+
+### Milestone 9 — Finalisation
+- Add Docker Compose.
+- Run the full test suite.
+- Document the architecture and setup.
+- Create example data and screenshots.
+- Prepare a portfolio-quality GitHub README.
+
+## 12. How You Should Work With Me
+
+Follow these instructions strictly:
+
+- Begin with Milestone 1 only.
+- Inspect my current project files before creating or modifying files.
+- If the project directory is empty, scaffold it cleanly.
+- Explain the purpose of each file and major design decision.
+- Prefer small, maintainable modules over a monolithic script.
+- Do not implement all milestones in one attempt.
+- Run relevant tests and inspect errors before declaring a milestone complete.
+- Never claim a command, test, API request, or database operation succeeded unless you actually ran it and verified the result.
+- If an external source is unavailable, explain the limitation and propose a documented alternative.
+- Ask before introducing paid APIs, external services, or sending potentially sensitive data outside the local environment.
+- Never put secrets or API keys in source code.
+- Maintain a checklist of completed and remaining milestones.
+- When a milestone passes, summarise what was built and provide the exact commands to run it.
+- Wait for my confirmation before proceeding to the next milestone.
+
+## First Task
+
+Start with Milestone 1.
+
+Inspect the available environment and project directory, then create the minimal project structure, Python environment instructions, dependency file, .gitignore, README, and a basic test setup.
+
+Do not start implementing CELLAR ingestion until the project foundation is working and I confirm that we can proceed.

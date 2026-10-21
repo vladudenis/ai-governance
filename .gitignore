@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets. .env.example is the committed template.
+.env
+.env.*
+!.env.example
+
+# Downloaded or generated local data. The directory itself stays in git.
+data/*
+!data/.gitkeep
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
+
+# Streamlit local secrets
+.streamlit/secrets.toml
